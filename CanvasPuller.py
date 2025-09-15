@@ -7,23 +7,22 @@ import time
 class CanvasPuller(QObject):
     canvas_data_pulled = pyqtSignal(list)
 
-    def __init__(self, api_url, token):
+    def __init__(self, cccmanager):
         super().__init__()
-        self.api_url = api_url
-        self.token = token
-        self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.cccmanager = cccmanager
+
+        self.headers = {"Authorization": f"Bearer {self.cccmanager.settings.token}"}
         self.courses : dict[int, str] = {}
         self.planner_items : list[wtd.WhatToDo] = []
 
         self.running = True
-        self.refresh_time = 10
         self.is_refreshing = False
-        self.last_refresh = time.time() - self.refresh_time
+        self.last_refresh = time.time() - self.cccmanager.settings.refresh_time
 
     def run(self):
         while self.running:
             now = time.time()
-            if now - self.last_refresh >= self.refresh_time:
+            if now - self.last_refresh >= self.cccmanager.settings.refresh_time:
                 self.Refresh()
             time.sleep(1)
 
@@ -38,7 +37,7 @@ class CanvasPuller(QObject):
     def GetCourses(self):
         print("Getting courses data...")
 
-        url = f"{self.api_url}/courses?per_page=100"
+        url = f"{self.cccmanager.settings.api_url}/courses?per_page=100"
         while url:
             resp = requests.get(url, headers=self.headers)
             
@@ -55,7 +54,7 @@ class CanvasPuller(QObject):
 
         new_planner_items : list[wtd.WhatToDo] = []
 
-        url = f"{self.api_url}/planner/items?per_page=100"
+        url = f"{self.cccmanager.settings.api_url}/planner/items?per_page=100"
         while url:
             resp = requests.get(url, headers=self.headers)
             

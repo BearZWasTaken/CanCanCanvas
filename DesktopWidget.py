@@ -1,11 +1,12 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QHBoxLayout, QGridLayout, QPushButton
+from PyQt5.QtWidgets import QLineEdit, QMenu, QWidgetAction, QApplication, QFormLayout
 from PyQt5.QtCore import Qt
 import ctypes
 import WhatToDo as wtd
 import CanvasPuller as cp
 
-class DesktopWidget(QWidget):
-    def __init__(self, canvasPuller:cp.CanvasPuller):
+class DesktopWidget(QWidget,):
+    def __init__(self, cccmanager):
         super().__init__()
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnBottomHint)
@@ -18,15 +19,17 @@ class DesktopWidget(QWidget):
 
         self.SetupModules()
 
-        self.canvasPuller = canvasPuller
+        self.cccmanager = cccmanager
+        self.canvasPuller = cccmanager.puller
 
         self.show()
 
     def SetupModules(self):
         ### Top Bar
+        # Settings
         top_bar = QHBoxLayout()
-        settings_btn = QPushButton("⚙")
-        settings_btn.setStyleSheet("""
+        self.settings_btn = QPushButton("⚙")
+        self.settings_btn.setStyleSheet("""
             QPushButton {
                 color: white;
                 background-color: rgba(0,0,0,150);
@@ -37,11 +40,16 @@ class DesktopWidget(QWidget):
                 background-color: rgba(50,50,50,200);
             }
         """)
-        settings_btn.clicked.connect(self.SettingsBtnClicked)
-        top_bar.addWidget(settings_btn, alignment=Qt.AlignLeft)
+        self.settings_btn.clicked.connect(self.SettingsBtnClicked)
+        top_bar.addWidget(self.settings_btn, alignment=Qt.AlignLeft)
 
-        refresh_btn = QPushButton("⟲")
-        refresh_btn.setStyleSheet("""
+        self.api_url_input = QLineEdit()
+        self.token_input = QLineEdit()
+        self.refresh_time_input = QLineEdit()
+        
+        # Refresh
+        self.refresh_btn = QPushButton("⟲")
+        self.refresh_btn.setStyleSheet("""
             QPushButton {
                 color: white;
                 background-color: rgba(0,0,0,150);
@@ -52,8 +60,8 @@ class DesktopWidget(QWidget):
                 background-color: rgba(50,50,50,200);
             }
         """)
-        refresh_btn.clicked.connect(self.RefreshBtnClicked)
-        top_bar.addWidget(refresh_btn, alignment=Qt.AlignLeft)
+        self.refresh_btn.clicked.connect(self.RefreshBtnClicked)
+        top_bar.addWidget(self.refresh_btn, alignment=Qt.AlignLeft)
 
         top_bar.addStretch(1)
         self.layout.addLayout(top_bar)
@@ -134,7 +142,53 @@ class DesktopWidget(QWidget):
         self.UpdateModules()
 
     def SettingsBtnClicked(self):
-        print('ok')
+        menu = QMenu(self)
+
+        action_widget = QWidgetAction(menu)
+        widget = QWidget()
+        widget_layout = QVBoxLayout()
+        widget_layout.setContentsMargins(5,5,5,5)
+        widget.setLayout(widget_layout)
+
+        form_layout = QFormLayout()
+        form_layout.setLabelAlignment(Qt.AlignLeft)
+        form_layout.setFormAlignment(Qt.AlignLeft)
+
+        self.api_url_input.setPlaceholderText("API URL")
+        self.api_url_input.setText(self.cccmanager.settings.api_url)
+        form_layout.addRow("API URL:", self.api_url_input)
+
+        self.token_input.setPlaceholderText("Token")
+        self.token_input.setText(self.cccmanager.settings.token)
+        form_layout.addRow("Token:", self.token_input)
+
+        self.refresh_time_input.setPlaceholderText("Refresh time")
+        self.refresh_time_input.setText(str(self.cccmanager.settings.refresh_time))
+        form_layout.addRow("Refresh time:", self.refresh_time_input)
+
+        widget_layout.addLayout(form_layout)
+
+        save_btn = QPushButton("Save")
+        
+        def Save():
+            self.cccmanager.settings.api_url = self.api_url_input.text()
+            self.cccmanager.settings.token = self.token_input.text()
+            try:
+                rt = int(self.refresh_time_input.text())
+                if rt < 10: rt = 10
+                self.cccmanager.settings.refresh_time = rt
+            except ValueError:
+                pass
+            self.cccmanager.SaveSettings()
+            menu.close()
+        
+        save_btn.clicked.connect(Save)
+        widget_layout.addWidget(save_btn)
+
+        action_widget.setDefaultWidget(widget)
+        menu.addAction(action_widget)
+
+        menu.exec_(self.settings_btn.mapToGlobal(self.settings_btn.rect().bottomLeft()))
 
     def RefreshBtnClicked(self):
         if not self.canvasPuller.is_refreshing:
