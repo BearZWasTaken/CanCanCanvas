@@ -1,5 +1,6 @@
 # CanCanCanvas
-Coded by BearZWasTaken.
+Coded by BearZWasTaken. \
+**This project is still being developed. Features may be unstable or incomplete.**
 <br>
 <br>
 ## What does it do?
