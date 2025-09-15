@@ -1,8 +1,8 @@
 import requests
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
-import time
 from datetime import datetime
 import WhatToDo as wtd
+import time
 
 class CanvasPuller(QObject):
     canvas_data_pulled = pyqtSignal(list)
@@ -14,15 +14,26 @@ class CanvasPuller(QObject):
         self.headers = {"Authorization": f"Bearer {self.token}"}
         self.courses : dict[int, str] = {}
         self.planner_items : list[wtd.WhatToDo] = []
+
         self.running = True
         self.refresh_time = 10
+        self.is_refreshing = False
+        self.last_refresh = time.time() - self.refresh_time
 
     def run(self):
         while self.running:
-            self.GetCourses()
-            self.GetPlannerItems()
-            self.canvas_data_pulled.emit(self.planner_items)
-            time.sleep(self.refresh_time)
+            now = time.time()
+            if now - self.last_refresh >= self.refresh_time:
+                self.Refresh()
+            time.sleep(1)
+
+    def Refresh(self):
+        self.is_refreshing = True
+        self.GetCourses()
+        self.GetPlannerItems()
+        self.canvas_data_pulled.emit(self.planner_items)
+        self.last_refresh = time.time()
+        self.is_refreshing = False
 
     def GetCourses(self):
         print("Getting courses data...")

@@ -2,9 +2,10 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QHBoxLayo
 from PyQt5.QtCore import Qt
 import ctypes
 import WhatToDo as wtd
+import CanvasPuller as cp
 
 class DesktopWidget(QWidget):
-    def __init__(self):
+    def __init__(self, canvasPuller:cp.CanvasPuller):
         super().__init__()
 
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnBottomHint)
@@ -16,6 +17,8 @@ class DesktopWidget(QWidget):
         self.planner_items : list[wtd.WhatToDo] = []
 
         self.SetupModules()
+
+        self.canvasPuller = canvasPuller
 
         self.show()
 
@@ -36,10 +39,7 @@ class DesktopWidget(QWidget):
         """)
         settings_btn.clicked.connect(self.SettingsBtnClicked)
         top_bar.addWidget(settings_btn, alignment=Qt.AlignLeft)
-        top_bar.addStretch(1)
-        self.layout.addLayout(top_bar)
 
-        top_bar = QHBoxLayout()
         refresh_btn = QPushButton("⟲")
         refresh_btn.setStyleSheet("""
             QPushButton {
@@ -53,7 +53,8 @@ class DesktopWidget(QWidget):
             }
         """)
         refresh_btn.clicked.connect(self.RefreshBtnClicked)
-        top_bar.addWidget(settings_btn, alignment=Qt.AlignLeft)
+        top_bar.addWidget(refresh_btn, alignment=Qt.AlignLeft)
+
         top_bar.addStretch(1)
         self.layout.addLayout(top_bar)
 
@@ -136,4 +137,5 @@ class DesktopWidget(QWidget):
         print('ok')
 
     def RefreshBtnClicked(self):
-        print('ko')
+        if not self.canvasPuller.is_refreshing:
+            self.canvasPuller.Refresh()

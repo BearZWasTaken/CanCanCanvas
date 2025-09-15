@@ -6,7 +6,7 @@ import sys
 class CCCManager:
     def __init__(self, api_url, token):
         self.puller = cp.CanvasPuller(api_url, token)
-        self.widget = dw.DesktopWidget()
+        self.widget = dw.DesktopWidget(self.puller)
 
         self.canvas_puller_thread = QThread()
         self.puller.moveToThread(self.canvas_puller_thread)
