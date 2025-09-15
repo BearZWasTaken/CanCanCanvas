@@ -15,7 +15,7 @@ class CanvasPuller(QObject):
         self.courses : dict[int, str] = {}
         self.planner_items : list[wtd.WhatToDo] = []
         self.running = True
-        self.refresh_time = 20
+        self.refresh_time = 10
 
     def run(self):
         while self.running:
@@ -44,6 +44,7 @@ class CanvasPuller(QObject):
         resp = requests.get(f"{self.api_url}/planner/items", headers=self.headers)
 
         items = resp.json()
+        new_planner_items : list[wtd.WhatToDo] = []
 
         for item in items:
             course_id = item.get("course_id")
@@ -55,7 +56,9 @@ class CanvasPuller(QObject):
 
             ddl = datetime.strptime(due_at, "%Y-%m-%dT%H:%M:%SZ") if due_at else None
             what_to_do = wtd.WhatToDo(source="Canvas", course_name=course_name, title=title, ddl=ddl)
-            self.planner_items.append(what_to_do)
+            new_planner_items.append(what_to_do)
 
             info = f"{course_name} | {title} | Due: {due_at}"
             print(info)
+        
+        self.planner_items = new_planner_items

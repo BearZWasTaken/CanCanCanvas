@@ -13,7 +13,7 @@ class DesktopWidget(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.planner_items : dict[wtd.WhatToDo] = {}
+        self.planner_items : list[wtd.WhatToDo] = []
 
         self.SetupModules()
 
@@ -21,13 +21,6 @@ class DesktopWidget(QWidget):
 
     def SetupModules(self):
         ### Canvas What-To-Do Module
-        self.grid_widget = QWidget()
-        self.grid_widget.setStyleSheet("background: rgba(255,255,255,50);")
-        self.grid_layout = QGridLayout()
-        self.grid_layout.setContentsMargins(0,0,0,0)
-        self.grid_layout.setSpacing(10)
-        self.grid_widget.setLayout(self.grid_layout)
-
         self.canvas_scroll = QScrollArea()
         self.canvas_scroll.setWidgetResizable(True)
         self.canvas_scroll.setStyleSheet("""
@@ -37,7 +30,6 @@ class DesktopWidget(QWidget):
             QScrollBar::add-line, QScrollBar::sub-line { height: 0px; }
         """)
         self.canvas_scroll.viewport().setAttribute(Qt.WA_TranslucentBackground)
-        self.canvas_scroll.setWidget(self.grid_widget)
         self.layout.addWidget(self.canvas_scroll)
 
         # Other Modules
@@ -50,13 +42,13 @@ class DesktopWidget(QWidget):
         self.layout.addWidget(clock_label2)
 
     def UpdateModules(self):
-        self.ClearLayout(self.grid_layout)
-        
         ### Canvas What-To-Do Module
-        while self.grid_layout.count():
-            item = self.grid_layout.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
+        grid_widget = QWidget()
+        grid_layout = QGridLayout()
+        grid_layout.setContentsMargins(0,0,0,0)
+        grid_layout.setSpacing(10)
+        grid_widget.setLayout(grid_layout)
+        grid_widget.setStyleSheet("background: rgba(255,255,255,50);")
 
         # Headers
         headers = ["Course", "Title", "DDL"]
@@ -64,40 +56,32 @@ class DesktopWidget(QWidget):
             lbl = QLabel(text)
             lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; font-weight:bold;")
             lbl.setAlignment(Qt.AlignLeft)
-            self.grid_layout.addWidget(lbl, 0, col)
+            grid_layout.addWidget(lbl, 0, col)
 
         # Tasks
         for row, task in enumerate(self.planner_items, start=1):
             course_lbl = QLabel(task.course_name)
             course_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             course_lbl.setAlignment(Qt.AlignLeft)
-            self.grid_layout.addWidget(course_lbl, row, 0)
+            grid_layout.addWidget(course_lbl, row, 0)
 
             title_lbl = QLabel(task.title)
             title_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             title_lbl.setAlignment(Qt.AlignLeft)
-            self.grid_layout.addWidget(title_lbl, row, 1)
+            grid_layout.addWidget(title_lbl, row, 1)
 
             ddl_text = task.ddl.strftime("%Y-%m-%d %H:%M:%S") if task.ddl else "None"
             ddl_lbl = QLabel(ddl_text)
             ddl_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             ddl_lbl.setAlignment(Qt.AlignLeft)
-            self.grid_layout.addWidget(ddl_lbl, row, 2)
+            grid_layout.addWidget(ddl_lbl, row, 2)
+        
+        old_widget = self.canvas_scroll.takeWidget()
+        if old_widget:
+            old_widget.deleteLater()
+        self.canvas_scroll.setWidget(grid_widget)
 
     def updateCanvasTasks(self, planner_items):
         self.planner_items = planner_items
         self.UpdateModules()
-
-    def ClearLayout(self, layout):
-        for i in reversed(range(layout.count())):
-            item = layout.itemAt(i)
-            if item.widget():
-                widget = item.widget()
-                layout.removeWidget(widget)
-                widget.setParent(None)
-            elif item.layout():
-                self.ClearLayout(item.layout())
-                layout.removeItem(item)
-            else:
-                layout.removeItem(item)
 
