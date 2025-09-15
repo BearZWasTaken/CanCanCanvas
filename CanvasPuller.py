@@ -41,24 +41,29 @@ class CanvasPuller(QObject):
 
     def GetPlannerItems(self):
         print("Getting planner items data...")
-        resp = requests.get(f"{self.api_url}/planner/items", headers=self.headers)
 
-        items = resp.json()
         new_planner_items : list[wtd.WhatToDo] = []
 
-        for item in items:
-            course_id = item.get("course_id")
-            plannable = item.get("plannable")
+        url = f"{self.api_url}/planner/items?per_page=100"
+        while url:
+            resp = requests.get(url, headers=self.headers)
+            
+            items = resp.json()
+            for item in items:
+                course_id = item.get("course_id")
+                plannable = item.get("plannable")
 
-            course_name = self.courses[course_id] if course_id in self.courses else f"Unknown({course_id})"
-            title = plannable['title']
-            due_at = plannable.get('due_at')
+                course_name = self.courses[course_id] if course_id in self.courses else f"Unknown({course_id})"
+                title = plannable['title']
+                due_at = plannable.get('due_at')
 
-            ddl = datetime.strptime(due_at, "%Y-%m-%dT%H:%M:%SZ") if due_at else None
-            what_to_do = wtd.WhatToDo(source="Canvas", course_name=course_name, title=title, ddl=ddl)
-            new_planner_items.append(what_to_do)
+                ddl = datetime.strptime(due_at, "%Y-%m-%dT%H:%M:%SZ") if due_at else None
+                what_to_do = wtd.WhatToDo(source="Canvas", course_name=course_name, title=title, ddl=ddl)
+                new_planner_items.append(what_to_do)
 
-            info = f"{course_name} | {title} | Due: {due_at}"
-            print(info)
+                info = f"{course_name} | {title} | Due: {due_at}"
+                print(info)
+
+            url = resp.links.get('next', {}).get('url')
         
         self.planner_items = new_planner_items

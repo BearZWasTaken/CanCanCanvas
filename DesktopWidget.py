@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QHBoxLayout, QSizePolicy, QWidgetItem, QGridLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QHBoxLayout, QGridLayout, QPushButton
 from PyQt5.QtCore import Qt
 import ctypes
 import WhatToDo as wtd
@@ -20,6 +20,25 @@ class DesktopWidget(QWidget):
         self.show()
 
     def SetupModules(self):
+        ### Top Bar
+        top_bar = QHBoxLayout()
+        settings_btn = QPushButton("⚙")
+        settings_btn.setStyleSheet("""
+            QPushButton {
+                color: white;
+                background-color: rgba(0,0,0,150);
+                border-radius: 5px;
+                padding: 5px 10px;
+            }
+            QPushButton:hover {
+                background-color: rgba(50,50,50,200);
+            }
+        """)
+        settings_btn.clicked.connect(self.SettingsBtnClicked)
+        top_bar.addWidget(settings_btn, alignment=Qt.AlignLeft)
+        top_bar.addStretch(1)
+        self.layout.addLayout(top_bar)
+
         ### Canvas What-To-Do Module
         self.canvas_scroll = QScrollArea()
         self.canvas_scroll.setWidgetResizable(True)
@@ -46,7 +65,7 @@ class DesktopWidget(QWidget):
         grid_widget = QWidget()
         grid_layout = QGridLayout()
         grid_layout.setContentsMargins(0,0,0,0)
-        grid_layout.setSpacing(10)
+        grid_layout.setSpacing(4)
         grid_widget.setLayout(grid_layout)
         grid_widget.setStyleSheet("background: rgba(255,255,255,50);")
 
@@ -85,3 +104,5 @@ class DesktopWidget(QWidget):
         self.planner_items = planner_items
         self.UpdateModules()
 
+    def SettingsBtnClicked(self):
+        print('ok')
