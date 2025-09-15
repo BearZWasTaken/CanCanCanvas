@@ -39,6 +39,24 @@ class DesktopWidget(QWidget):
         top_bar.addStretch(1)
         self.layout.addLayout(top_bar)
 
+        top_bar = QHBoxLayout()
+        refresh_btn = QPushButton("⟲")
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                color: white;
+                background-color: rgba(0,0,0,150);
+                border-radius: 5px;
+                padding: 5px 10px;
+            }
+            QPushButton:hover {
+                background-color: rgba(50,50,50,200);
+            }
+        """)
+        refresh_btn.clicked.connect(self.RefreshBtnClicked)
+        top_bar.addWidget(settings_btn, alignment=Qt.AlignLeft)
+        top_bar.addStretch(1)
+        self.layout.addLayout(top_bar)
+
         ### Canvas What-To-Do Module
         self.canvas_scroll = QScrollArea()
         self.canvas_scroll.setWidgetResizable(True)
@@ -70,7 +88,7 @@ class DesktopWidget(QWidget):
         grid_widget.setStyleSheet("background: rgba(255,255,255,50);")
 
         # Headers
-        headers = ["Course", "Title", "DDL"]
+        headers = ["Course", "Title", "DDL", ":)"]
         for col, text in enumerate(headers):
             lbl = QLabel(text)
             lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; font-weight:bold;")
@@ -94,6 +112,16 @@ class DesktopWidget(QWidget):
             ddl_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             ddl_lbl.setAlignment(Qt.AlignLeft)
             grid_layout.addWidget(ddl_lbl, row, 2)
+
+            state_text = "　" if task.state == wtd.WhatToDo.State.UNDONE \
+                    else "√" if task.state == wtd.WhatToDo.State.DONE \
+                    else "—" if task.state == wtd.WhatToDo.State.IGNORE \
+                    else "？"
+            state_lbl = QLabel(state_text)
+            state_lbl.setFixedWidth(39)
+            state_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px; font-weight:bold;")
+            state_lbl.setAlignment(Qt.AlignCenter)
+            grid_layout.addWidget(state_lbl, row, 3)
         
         old_widget = self.canvas_scroll.takeWidget()
         if old_widget:
@@ -106,3 +134,6 @@ class DesktopWidget(QWidget):
 
     def SettingsBtnClicked(self):
         print('ok')
+
+    def RefreshBtnClicked(self):
+        print('ko')
