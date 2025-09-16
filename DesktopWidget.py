@@ -5,7 +5,7 @@ import ctypes
 import WhatToDo as wtd
 import CanvasPuller as cp
 
-class DesktopWidget(QWidget,):
+class DesktopWidget(QWidget):
     def __init__(self, cccmanager):
         super().__init__()
 
@@ -64,6 +64,27 @@ class DesktopWidget(QWidget,):
         top_bar.addWidget(self.refresh_btn, alignment=Qt.AlignLeft)
 
         top_bar.addStretch(1)
+
+        # Drag
+        self.drag_btn = QPushButton("✥")
+        self.drag_btn.setStyleSheet("""
+            QPushButton {
+                color: white;
+                background-color: rgba(0,0,0,150);
+                border-radius: 5px;
+                padding: 5px 10px;
+            }
+            QPushButton:hover {
+                background-color: rgba(50,50,50,200);
+            }
+        """)
+        self.drag_btn.setCursor(Qt.OpenHandCursor)
+        top_bar.addWidget(self.drag_btn, alignment=Qt.AlignRight)
+
+        self.drag_btn.installEventFilter(self)
+        self._drag_active = False
+        self._drag_pos = None
+
         self.layout.addLayout(top_bar)
 
         ### Canvas What-To-Do Module
@@ -193,3 +214,19 @@ class DesktopWidget(QWidget,):
     def RefreshBtnClicked(self):
         if not self.canvasPuller.is_refreshing:
             self.canvasPuller.Refresh()
+
+    def eventFilter(self, source, event):
+        if source == self.drag_btn:
+            if event.type() == event.MouseButtonPress and event.button() == Qt.LeftButton:
+                self._drag_active = True
+                self._drag_pos = event.globalPos() - self.frameGeometry().topLeft()
+                self.drag_btn.setCursor(Qt.ClosedHandCursor)
+                return True
+            elif event.type() == event.MouseMove and self._drag_active:
+                self.move(event.globalPos() - self._drag_pos)
+                return True
+            elif event.type() == event.MouseButtonRelease and event.button() == Qt.LeftButton:
+                self._drag_active = False
+                self.drag_btn.setCursor(Qt.OpenHandCursor)
+                return True
+        return super().eventFilter(source, event)

@@ -1,8 +1,6 @@
 import sys
 import CCCManager as cccm
 from PyQt5.QtWidgets import QApplication
-import json
-import os
 
 sys.stdout.reconfigure(encoding="utf-8")
 
