@@ -23,6 +23,8 @@ class DesktopWidget(QWidget):
         self.cccmanager = cccmanager
         self.canvasPuller = cccmanager.puller
 
+        self.filterFunc = None
+
         self.show()
 
     def SetupModules(self):
@@ -63,6 +65,22 @@ class DesktopWidget(QWidget):
         """)
         self.refresh_btn.clicked.connect(self.RefreshBtnClicked)
         top_bar.addWidget(self.refresh_btn, alignment=Qt.AlignLeft)
+
+        # Filter
+        self.filter_btn = QPushButton("☆")
+        self.filter_btn.setStyleSheet("""
+            QPushButton {
+                color: white;
+                background-color: rgba(0,0,0,150);
+                border-radius: 5px;
+                padding: 5px 10px;
+            }
+            QPushButton:hover {
+                background-color: rgba(50,50,50,200);
+            }
+        """)
+        top_bar.addWidget(self.filter_btn, alignment=Qt.AlignLeft)
+        self.filter_btn.mousePressEvent = self.FilterBtnClicked
 
         top_bar.addStretch(1)
 
@@ -129,8 +147,14 @@ class DesktopWidget(QWidget):
             lbl.setMaximumWidth(max_widths[col])
             grid_layout.addWidget(lbl, 0, col)
 
+        # Apply filterFunc if set, otherwise show all
+        if self.filterFunc:
+            shown_tasks = list(filter(self.filterFunc, self.planner_items))
+        else:
+            shown_tasks = self.planner_items
+
         # Tasks
-        for row, task in enumerate(self.planner_items, start=1):
+        for row, task in enumerate(shown_tasks, start=1):
             course_lbl = asl.AutoScrollLabel(task.course_name)
             course_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             course_lbl.setAlignment(Qt.AlignLeft)
@@ -217,6 +241,37 @@ class DesktopWidget(QWidget):
         menu.addAction(action_widget)
 
         menu.exec_(self.settings_btn.mapToGlobal(self.settings_btn.rect().bottomLeft()))
+
+    def FilterBtnClicked(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.filterFunc is None:
+                self.filterFunc = lambda task: task.state == wtd.WhatToDo.State.UNDONE
+                self.filter_btn.setText("★")
+            else:
+                self.filterFunc = None
+                self.filter_btn.setText("☆")
+            self.UpdateModules()
+        
+        elif event.button() == Qt.RightButton:
+            menu = QMenu(self)
+            action_widget = QWidgetAction(menu)
+            widget = QWidget()
+            layout = QVBoxLayout()
+            layout.setContentsMargins(5,5,5,5)
+            widget.setLayout(layout)
+
+            from PyQt5.QtWidgets import QCheckBox
+
+            switch1 = QCheckBox("Enable feature A")
+            switch2 = QCheckBox("Enable feature B")
+            switch3 = QCheckBox("Enable feature C")
+            layout.addWidget(switch1)
+            layout.addWidget(switch2)
+            layout.addWidget(switch3)
+
+            action_widget.setDefaultWidget(widget)
+            menu.addAction(action_widget)
+            menu.exec_(self.filter_btn.mapToGlobal(self.filter_btn.rect().bottomLeft()))
 
     def RefreshBtnClicked(self):
         if not self.canvasPuller.is_refreshing:
