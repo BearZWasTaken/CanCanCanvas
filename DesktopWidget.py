@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 import ctypes
 import WhatToDo as wtd
 import CanvasPuller as cp
+import AutoScrollLabel as asl
 
 class DesktopWidget(QWidget):
     def __init__(self, cccmanager):
@@ -117,30 +118,36 @@ class DesktopWidget(QWidget):
         grid_widget.setLayout(grid_layout)
         grid_widget.setStyleSheet("background: rgba(255,255,255,50);")
 
+        max_widths = [140, 380, 190, 40]
+
         # Headers
         headers = ["Course", "Title", "DDL", ":)"]
         for col, text in enumerate(headers):
             lbl = QLabel(text)
             lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; font-weight:bold;")
             lbl.setAlignment(Qt.AlignLeft)
+            lbl.setMaximumWidth(max_widths[col])
             grid_layout.addWidget(lbl, 0, col)
 
         # Tasks
         for row, task in enumerate(self.planner_items, start=1):
-            course_lbl = QLabel(task.course_name)
+            course_lbl = asl.AutoScrollLabel(task.course_name)
             course_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             course_lbl.setAlignment(Qt.AlignLeft)
+            course_lbl.setMaximumWidth(max_widths[0])
             grid_layout.addWidget(course_lbl, row, 0)
 
-            title_lbl = QLabel(task.title)
+            title_lbl = asl.AutoScrollLabel(task.title)
             title_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             title_lbl.setAlignment(Qt.AlignLeft)
+            title_lbl.setMaximumWidth(max_widths[1])
             grid_layout.addWidget(title_lbl, row, 1)
 
             ddl_text = task.ddl.strftime("%Y-%m-%d %H:%M:%S") if task.ddl else "None"
-            ddl_lbl = QLabel(ddl_text)
+            ddl_lbl = asl.AutoScrollLabel(ddl_text)
             ddl_lbl.setStyleSheet("color:white; background-color: rgba(0,0,0,150); padding:3px; border-radius:3px;")
             ddl_lbl.setAlignment(Qt.AlignLeft)
+            ddl_lbl.setMaximumWidth(max_widths[2])
             grid_layout.addWidget(ddl_lbl, row, 2)
 
             state_text = "　" if task.state == wtd.WhatToDo.State.UNDONE \
