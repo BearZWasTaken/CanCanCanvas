@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QLineEdit, QMenu, QWidgetAction, QFormLayout, QColor
 from PyQt5.QtCore import Qt
 import ctypes
 import WhatToDo as wtd
-from components import AutoScrollLabel as asl, DateTimeInputBox as dtib
+from components import AutoScrollLabel as asl, DateTimeInputBox as dtib, AddableComboBox as acb
 from datetime import datetime
 
 class DesktopWidget(QWidget):
@@ -392,7 +392,7 @@ class DesktopWidget(QWidget):
         ddl_input = dtib.DateTimeInputBox()
         form_layout.addRow("DDL:", ddl_input)
 
-        source_input = QLineEdit()
+        source_input = acb.AddableComboBox(self.sources)
         form_layout.addRow("Source:", source_input)
 
         type_input = QLineEdit()
@@ -403,7 +403,7 @@ class DesktopWidget(QWidget):
         def AddTask():
             title = title_input.text().strip()
             course = course_input.text().strip()
-            source = source_input.text().strip()
+            source = source_input.currentText().strip()
             todo_type = type_input.text().strip()
             if not title:
                 return
