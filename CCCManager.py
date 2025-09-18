@@ -7,7 +7,7 @@ import os
 import WhatToDo as wtd
 
 SETTINGS_FILE = "configs/settings.json"
-CUSTOM_TASKS_FILE = "configs/custom_tasks.json"
+WHAT_TO_DO_FILE = "configs/what_to_do.json"
 COLORS_FILE = "configs/colors.json"
 
 class CCCManager:
@@ -15,10 +15,11 @@ class CCCManager:
         self.settings = CCCSettings()
         self.colors = {}
 
-        self.custom_tasks : list[wtd.WhatToDo] = []
+        self.what_to_do_list : list[wtd.WhatToDo] = []
+        self.sources : list[str] = []
 
         self.ReadSettings()
-        self.ReadCustomTasks()
+        self.ReadTasks()
         self.ReadColors()
 
         self.puller = cp.CanvasPuller(self)
@@ -27,7 +28,7 @@ class CCCManager:
         self.canvas_puller_thread = QThread()
         self.puller.moveToThread(self.canvas_puller_thread)
         self.canvas_puller_thread.started.connect(self.puller.run)
-        self.puller.canvas_data_pulled.connect(self.widget.updateCanvasTasks)
+        self.puller.canvas_data_pulled.connect(self.UpdateCanvasTaskList)
 
         self.canvas_puller_thread.start()
     
@@ -49,17 +50,17 @@ class CCCManager:
     def SaveSettings(self):
         self.settings.OutputToJson(SETTINGS_FILE)
 
-    def ReadCustomTasks(self):
-        if not os.path.exists(CUSTOM_TASKS_FILE):
-            with open(CUSTOM_TASKS_FILE, "w", encoding="utf-8") as f:
+    def ReadTasks(self):
+        if not os.path.exists(WHAT_TO_DO_FILE):
+            with open(WHAT_TO_DO_FILE, "w", encoding="utf-8") as f:
                 f.write("[]")
         
-        with open(CUSTOM_TASKS_FILE, "r", encoding="utf-8") as f:
+        with open(WHAT_TO_DO_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            self.custom_tasks = wtd.InputFromJson(data)
+            self.what_to_do_list = wtd.InputFromJson(data)
     
-    def SaveCustomTasks(self):
-        wtd.OutputToJson(CUSTOM_TASKS_FILE, self.custom_tasks)
+    def SaveTasks(self):
+        wtd.OutputToJson(WHAT_TO_DO_FILE, self.what_to_do_list)
     
     def ReadColors(self):
         if not os.path.exists(COLORS_FILE):
@@ -78,8 +79,33 @@ class CCCManager:
             json.dump(self.colors, f, indent=4, ensure_ascii=False)
     
     def Refresh(self):
-        if not self.puller.is_refreshing:
-            self.puller.Refresh()
+        self.puller.Refresh()
+
+    def AddTask(self, task:wtd.WhatToDo):
+        if task not in self.what_to_do_list:
+            self.what_to_do_list.append(task)
+
+    def DeleteTask(self, task:wtd.WhatToDo):
+        if task in self.what_to_do_list:
+            self.what_to_do_list.remove(task)
+
+    def UpdateWhatToDoList(self):
+        for task in self.what_to_do_list:
+            src = task.source
+            if src != "Canvas" and src not in self.sources:
+                self.sources.append(src)
+
+        self.widget.UpdateModules()
+        self.SaveTasks()
+
+    def UpdateCanvasTaskList(self, canvas_tasks:list[wtd.WhatToDo]):
+        for task in reversed(self.what_to_do_list):
+            if task.source == "Canvas":
+                self.DeleteTask(task)
+        
+        self.what_to_do_list.extend(canvas_tasks)
+
+        self.UpdateWhatToDoList()
 
 class CCCSettings:
     def __init__(self):

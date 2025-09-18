@@ -1,8 +1,9 @@
 import requests
-from PyQt5.QtCore import QObject, pyqtSignal, QThread
+from PyQt5.QtCore import QObject, pyqtSignal
 from datetime import datetime
 import WhatToDo as wtd
 import time
+import threading
 
 class CanvasPuller(QObject):
     canvas_data_pulled = pyqtSignal(list)
@@ -16,7 +17,7 @@ class CanvasPuller(QObject):
         self.planner_items : list[wtd.WhatToDo] = []
 
         self.running = True
-        self.is_refreshing = False
+        self.refresh_lock = threading.Lock()
         self.last_refresh = time.time() - self.cccmanager.settings.refresh_time
 
     def run(self):
@@ -27,12 +28,21 @@ class CanvasPuller(QObject):
             time.sleep(1)
 
     def Refresh(self):
-        self.is_refreshing = True
-        self.GetCourses()
-        self.GetPlannerItems()
-        self.canvas_data_pulled.emit(self.planner_items)
-        self.last_refresh = time.time()
-        self.is_refreshing = False
+        if not self.refresh_lock.acquire(blocking=False):
+            print("Refresh skipped (already refreshing)")
+            return
+
+        def refresh_worker():
+            try:
+                self.GetCourses()
+                self.GetPlannerItems()
+                self.canvas_data_pulled.emit(self.planner_items)
+                self.last_refresh = time.time()
+                print("Refresh finished")
+            finally:
+                self.refresh_lock.release()
+
+        threading.Thread(target=refresh_worker, daemon=True).start()
 
     def GetCourses(self):
         print("Getting courses data...")
@@ -63,6 +73,7 @@ class CanvasPuller(QObject):
                 course_id = item.get("course_id")
                 plannable = item.get("plannable")
                 submissions = item.get("submissions")
+                description = item.get('description')
 
                 state = wtd.WhatToDo.State.UNDONE
                 if submissions:
@@ -72,12 +83,13 @@ class CanvasPuller(QObject):
                         state = wtd.WhatToDo.State.DONE
 
                 course_name = self.courses[course_id] if course_id in self.courses else f"Unknown({course_id})"
-                title = plannable['title']
+                title = plannable.get('title')
                 due_at = plannable.get('due_at')
 
                 ddl = datetime.strptime(due_at, "%Y-%m-%dT%H:%M:%SZ") if due_at else None
 
-                what_to_do = wtd.WhatToDo(source="Canvas", course_name=course_name, title=title, ddl=ddl, state=state)
+                what_to_do = wtd.WhatToDo(source="Canvas", course_name=course_name, title=title,
+                                          description=description, ddl=ddl, state=state)
                 new_planner_items.append(what_to_do)
 
                 info = f"{course_name} | {title} | Due: {due_at}"

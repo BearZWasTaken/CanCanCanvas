@@ -1,7 +1,8 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QHBoxLayout, QGridLayout, QPushButton
-from PyQt5.QtWidgets import QLineEdit, QMenu, QWidgetAction, QFormLayout, QColorDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QHBoxLayout, QGridLayout, QPushButton, \
+                            QLineEdit, QMenu, QWidgetAction, QFormLayout, \
+                            QDialog, QColorDialog, QDialogButtonBox
+from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
-import ctypes
 import WhatToDo as wtd
 from components import AutoScrollLabel as asl, DateTimeInputBox as dtib, AddableComboBox as acb
 from datetime import datetime
@@ -18,8 +19,8 @@ class DesktopWidget(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.planner_items : list[wtd.WhatToDo] = []
-        self.sources : list[str] = []
+        self.planner_items = cccmanager.what_to_do_list
+        self.sources = cccmanager.sources
 
         self.source_colors = cccmanager.colors
 
@@ -214,6 +215,7 @@ class DesktopWidget(QWidget):
             title_lbl.setStyleSheet(f"color:white; background-color: {bkgrd_rgba}; padding:3px; border-radius:3px;")
             title_lbl.setAlignment(Qt.AlignLeft)
             title_lbl.setMaximumWidth(max_widths[1])
+            title_lbl.mouseDoubleClickEvent = lambda event, t=task: self.EditTaskDialog(t)
             grid_layout.addWidget(title_lbl, row, 1)
 
             ddl_text = task.ddl.strftime("%Y-%m-%d %H:%M:%S") if task.ddl else "None"
@@ -246,16 +248,6 @@ class DesktopWidget(QWidget):
         if old_widget:
             old_widget.deleteLater()
         self.canvas_scroll.setWidget(chart_container_widget)
-
-    def updateCanvasTasks(self, planner_items):
-        self.planner_items = planner_items
-        self.planner_items.extend(self.cccmanager.custom_tasks)
-
-        for task in planner_items:
-            if task.source not in self.sources:
-                self.sources.append(task.source)
-
-        self.UpdateModules()
 
     def SettingsBtnClicked(self):
         menu = QMenu(self)
@@ -411,11 +403,10 @@ class DesktopWidget(QWidget):
             ddl = ddl_input.to_datetime()
 
             new_task = wtd.WhatToDo(source=source, course_name=course, todo_type=todo_type, title=title, ddl=ddl, state=wtd.WhatToDo.State.UNDONE)
-            self.cccmanager.custom_tasks.append(new_task)
-            self.cccmanager.SaveCustomTasks()
-            self.planner_items.append(new_task)
-            if source not in self.sources:
-                self.sources.append(source)
+            self.cccmanager.AddTask(new_task)
+            self.cccmanager.SaveTasks()
+            self.cccmanager.AddTask(source)
+
             self.UpdateModules()
             menu.close()
 
@@ -424,6 +415,85 @@ class DesktopWidget(QWidget):
         action_widget.setDefaultWidget(widget)
         menu.addAction(action_widget)
         menu.exec_(self.add_btn.mapToGlobal(self.add_btn.rect().bottomLeft()))
+    
+    def EditTaskDialog(self, task):
+        dialog = QDialog(self)
+        dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+
+        # Set best position to show
+        cursor_pos = QCursor.pos()
+        dialog.move(cursor_pos.x() + 20, cursor_pos.y())
+
+        dialog.setWindowTitle("Edit Task")
+        dialog.setStyleSheet("""
+            QDialog {
+                background: rgba(50, 50, 50, 150);
+                border-radius: 5px;
+            }
+            QLabel {
+                color: white;
+            }
+            QLineEdit, QComboBox {
+                background: rgba(255, 255, 255, 200);
+                border: 1px solid gray;
+                border-radius: 3px;
+                padding: 3px;
+            }
+        """)
+        
+        layout = QVBoxLayout()
+        form_layout = QFormLayout()
+        
+        title_input = QLineEdit(task.title)
+        form_layout.addRow("Title:", title_input)
+        
+        course_input = QLineEdit(task.course_name)
+        form_layout.addRow("Course:", course_input)
+        
+        ddl_input = dtib.DateTimeInputBox()
+        if task.ddl:
+            ddl_input.set_datetime(task.ddl)
+        form_layout.addRow("DDL:", ddl_input)
+        
+        source_input = acb.AddableComboBox(self.sources)
+        source_input.setCurrentText(task.source)
+        form_layout.addRow("Source:", source_input)
+        
+        type_input = QLineEdit(task.todo_type)
+        form_layout.addRow("Type:", type_input)
+        
+        state_combo = acb.AddableComboBox(["UNDONE", "√", "—", "(delete)"], addable=False)
+        state_combo.setCurrentText(task.state.name)
+        form_layout.addRow("State:", state_combo)
+        
+        layout.addLayout(form_layout)
+        
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+        
+        dialog.setLayout(layout)
+        dialog_result = dialog.exec_()
+
+        if dialog_result == QDialog.Accepted:
+            task.title = title_input.text().strip()
+            task.course_name = course_input.text().strip()
+            task.ddl = ddl_input.to_datetime()
+            task.source = source_input.currentText().strip()
+            task.todo_type = type_input.text().strip()
+            
+            new_state = state_combo.currentText()
+            if new_state == "UNDONE":
+                task.state = wtd.WhatToDo.State.UNDONE
+            elif new_state == "√":
+                task.state = wtd.WhatToDo.State.DONE
+            elif new_state == "—":
+                task.state = wtd.WhatToDo.State.IGNORE
+            elif new_state == "(delete)":
+                self.cccmanager.DeleteTask(task)
+            
+            self.cccmanager.UpdateWhatToDoList()
 
     def eventFilter(self, source, event):
         if source == self.drag_btn:

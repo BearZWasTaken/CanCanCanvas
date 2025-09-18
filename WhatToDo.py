@@ -8,13 +8,14 @@ class WhatToDo:
         DONE = 1
         IGNORE = 2
 
-    def __init__(self, source="", course_name="", todo_type="", title="", ddl=None, state=State.UNDONE, \
+    def __init__(self, source="", course_name="", todo_type="", title="", description="", ddl=None, state=State.UNDONE, \
                  dict=None):
         if dict is None:
             self.source = source
             self.course_name = course_name
             self.todo_type = todo_type
             self.title = title
+            self.description = description
             self.ddl = ddl
             self.state = state
         else:
@@ -22,6 +23,7 @@ class WhatToDo:
             self.course_name = dict.get("course_name", "")
             self.todo_type = dict.get("todo_type", "")
             self.title = dict.get("title", "")
+            self.description = dict.get("description", "")
             ddl_str = dict.get("ddl", None)
             self.ddl = datetime.fromisoformat(ddl_str) if ddl_str else None
             state_value = dict.get("state", 0)
@@ -33,6 +35,7 @@ class WhatToDo:
             "course_name": self.course_name,
             "todo_type": self.todo_type,
             "title": self.title,
+            "discription": self.description,
             "ddl": self.ddl.isoformat() if self.ddl else None,
             "state": self.state.value
         }

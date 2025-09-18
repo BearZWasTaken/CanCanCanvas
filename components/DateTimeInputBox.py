@@ -69,3 +69,20 @@ class DateTimeInputBox(QHBoxLayout):
             except ValueError:
                 pass
         return dt
+
+    def set_datetime(self, datetime):
+        if datetime:
+            self.year_input.setText(str(datetime.year))
+            self.month_input.setText(f"{datetime.month:02d}")
+            self.day_input.setText(f"{datetime.day:02d}")
+            
+            self.hour_input.setText(f"{datetime.hour:02d}")
+            self.minute_input.setText(f"{datetime.minute:02d}")
+            self.second_input.setText(f"{datetime.second:02d}")
+        else:
+            self.year_input.clear()
+            self.month_input.clear()
+            self.day_input.clear()
+            self.hour_input.clear()
+            self.minute_input.clear()
+            self.second_input.clear()
